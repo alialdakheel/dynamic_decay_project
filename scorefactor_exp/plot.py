@@ -5,11 +5,11 @@ Plot results of experiment
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-def level_vs_time_subplots(dfs):
+def level_vs_time_subplots(dfs, conf):
     cols = 1
     fig, ax_arr = plt.subplots(len(dfs)//cols, cols, sharex=True)
 
-    for ax, df in zip(ax_arr.flatten(), dfs):
+    for i, (ax, df) in enumerate(zip(ax_arr.flatten(), dfs)):
         g = sns.pointplot(
                 x='time',
                 y='level',
@@ -21,7 +21,12 @@ def level_vs_time_subplots(dfs):
                 )
         ax.set_xticklabels(ax.get_xticklabels(),
                 fontsize=6, rotation=43, ha="right")
-    # plt.tight_layout()
+        ax.set_xlabel("")
+        ax.set_ylabel("")
+        ax.set_title(conf[i].split('___')[-1])
+    fig.text(0.5, 0.04, "Time (s)", va='center', ha='center',)
+    fig.text(0.04, 0.5, "Level (mean, std)", va='center', ha='center', rotation='vertical')
+    fig.subplots_adjust(left=0.08, right=0.94, bottom=0.1, top=0.94, hspace=0.2)
     plt.show()
 
 if __name__ == "__main__":
@@ -35,6 +40,6 @@ if __name__ == "__main__":
             ]
     res_dict = parse_exp_output(exp_outputs_dir, config_list)
     dfs = dict_to_dfs(res_dict)
-    level_vs_time_subplots(dfs)
+    level_vs_time_subplots(dfs, config_list)
 
 
