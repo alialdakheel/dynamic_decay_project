@@ -108,36 +108,32 @@ def level_vs_time_diff(df, conf):
     markers = [i for i in range(12)]
     # cm = sns.color_palette('tab20')
     cm = sns.color_palette('twilight', len(df.cnf.unique()))
-    num_plot = np.math.factorial(len(conf)) // (2 * np.math.factorial(len(conf)-2))
+    # num_plot = np.math.factorial(len(conf)) // (2 * np.math.factorial(len(conf)-2))
+    num_plot = 4*4
+    cols = 4
     cnfs = df.cnf.unique()
 
-    cols = 1
     fig, ax_arr = plt.subplots(num_plot//cols, cols, sharex=True)
-    ax_arr.flatten()
+    # ax_arr.flatten()
     for i, c in enumerate(conf):
         df_conf = df[df.config == c].reset_index()
-        for c2 in enumerate(conf[i+1:]):
+        for i2, c2 in enumerate(conf):
+            ax = ax_arr[i, i2]
             df_conf2 = df[df.config == c2].reset_index()
-            df_conf["time_diff"] = abs(df_conf.time - df_conf2.time)
-            g = sns.pointplot(
-                    y='level', x='time', hue='cnf', data=df_conf,
-                    ci='sd',
-                    scale=0.6,
-                    errwidth=0.5,
-                    # markers=marker,
-                    palette=cm,
-                    hue_order=cnfs,
-                    ax=ax_arr[i]
+            df_conf[f"diff{i2}"] = df_conf2.time - df_conf.time
+            g = sns.boxplot(x='sat_state', y=f"diff{i2}",
+                    data=df_conf,
+                    showmeans=True,
+                    ax=ax
             )
-            g.legend('')
-            ax = ax_arr[i]
-            ax.set_xticklabels(ax.get_xticklabels(),
-                    fontsize=6, rotation=43, ha="right")
+            conf2 = c2.rstrip(')').rstrip('\'').split('___')[-1]
+            conf1 = c.rstrip(')').rstrip('\'').split('___')[-1]
+            ax.set_title(f"{conf2} - {conf1}")
             ax.set_xlabel("")
             ax.set_ylabel("")
-            ax.set_title(conf[i].split('___')[-1])
-    fig.text(0.5, 0.04, "Time (s)", va='center', ha='center',)
-    fig.text(0.04, 0.5, "Level (mean, std)", va='center', ha='center', rotation='vertical')
+            ax.set_xticklabels(ax.get_xticklabels(),
+                    fontsize=9, rotation=20, ha="right")
+
     fig.subplots_adjust(left=0.08, right=0.94, bottom=0.1, top=0.94, hspace=0.2)
     plt.show()
 
@@ -188,7 +184,7 @@ if __name__ == "__main__":
 
     # level_vs_time(df, config_list)
     # level_vs_time_sp2(df, config_list)
-    # level_vs_time_diff(df, config_list)
-    level_vs_time_boxplots(df, config_list)
+    level_vs_time_diff(df, config_list)
+    # level_vs_time_boxplots(df, config_list)
 
 

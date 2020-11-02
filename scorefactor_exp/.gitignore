@@ -4,4 +4,6 @@ exp_benchmarks*
 exp_output*
 
 output*
-result*
+results.csv
+
+__pycache*
