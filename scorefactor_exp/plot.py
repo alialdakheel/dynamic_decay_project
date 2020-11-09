@@ -187,7 +187,7 @@ def level_vs_time_boxplots(df, conf):
     fig.subplots_adjust(left=0.08, right=0.94, bottom=0.1, top=0.94, hspace=0.2)
     plt.show()
 
-def level_vs_level(df, conf):
+def level_vs_level(df, conf, logscale=False):
     markers = [i for i in range(12)]
     # cm = sns.color_palette('tab20')
     cm = sns.color_palette('twilight', len(df.cnf.unique()))
@@ -196,7 +196,7 @@ def level_vs_level(df, conf):
     cols = 4
     cnfs = df.cnf.unique()
 
-    fig, ax_arr = plt.subplots(num_plot//cols, cols, sharex=True)
+    fig, ax_arr = plt.subplots(num_plot//cols, cols)
     ax_arr.flatten()
     for i, c in enumerate(conf):
         df_conf = df[df.config == c].reset_index()
@@ -208,19 +208,23 @@ def level_vs_level(df, conf):
             df_conf2 = df[df.config == c2].reset_index()
             df_conf[f"diff{i2}"] = df_conf2.time - df_conf.time
 
-            g = sns.scatter(x=df_conf.level, y=df_conf2.level,
+            g = sns.scatterplot(x=df_conf.av_level, y=df_conf2.av_level,
                     hue=df_conf[f"diff{i2}"],
                     ax=ax
             )
+            if logscale:
+                g.set(xscale='log')
+                g.set(yscale='log')
             conf2 = c2.rstrip(')').rstrip('\'').split('___')[-1]
             conf1 = c.rstrip(')').rstrip('\'').split('___')[-1]
             ax.set_title(f"{conf2} - {conf1}")
-            # ax.set_xlabel("")
-            # ax.set_ylabel("")
+            ax.set_xlabel(conf1)
+            ax.set_ylabel(conf2)
             # ax.set_xticklabels(ax.get_xticklabels(),
                     # fontsize=9, rotation=20, ha="right")
 
-    # fig.subplots_adjust(left=0.08, right=0.94, bottom=0.1, top=0.94, hspace=0.2)
+    fig.subplots_adjust(left=0.05, right=0.96, bottom=0.05, top=0.96,
+            hspace=0.5, wspace=0.2)
     plt.show()
 
 if __name__ == "__main__":
