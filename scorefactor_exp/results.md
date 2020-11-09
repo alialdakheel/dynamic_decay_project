@@ -1,6 +1,4 @@
-
-![level_vs_time](images/level_vs_time.png)
-
+### Level vs. solve time
 
 ![level_vs_time_points](images/level_vs_time_points.png)
 
