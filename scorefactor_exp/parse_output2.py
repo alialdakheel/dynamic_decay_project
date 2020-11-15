@@ -10,13 +10,15 @@ import pandas as pd
 DEBUG = False
 
 def parse_one(path):
-    # path = Path(output_dir) / Path(config) / Path(name)
     with open(path, 'r') as fp:
         level_list = list()
+        glue_list = list()
         for line in fp:
             if line[-2] == '%':
                 level = int(line.split()[5])
                 level_list.append(level)
+                glue = int(line.split()[11])
+                glue_list.append(glue)
             if "total real time since initialization:" in line:
                 solve_time = float(line.split()[7])
             if "SATISFIABLE" in line:
@@ -27,7 +29,7 @@ def parse_one(path):
         print("average level:", average_level)
         print("solve time:", solve_time)
 
-    return level_list, solve_time, sat_state
+    return level_list, solve_time, sat_state, glue_list
 
 def parse_all(output_dir, path_dict, cnfs):
     res_dict = dict()
@@ -38,7 +40,7 @@ def parse_all(output_dir, path_dict, cnfs):
             assert(len(f) == 1)
             path = f[0]
             try:
-                level_list, solve_time, satstate = parse_one(path)
+                level_list, solve_time, satstate, glue_list = parse_one(path)
             except Exception as e:
                 if DEBUG:
                     print("Parse one failed", path)
@@ -47,45 +49,47 @@ def parse_all(output_dir, path_dict, cnfs):
             res_dict[cnf][c] = {
                     'level': level_list,
                     'time': solve_time,
-                    'sat_state': satstate
+                    'sat_state': satstate,
+                    'glue': max(glue_list),
                     }
 
-
-    # for path in paths:
-        # res_dict[path] = dict()
-        # for c in path_dict.keys():
-            # try:
-                # level_list, solve_time, satstate = parse_one(output_dir, c, path)
-            # except:
-                # continue
-            # res_dict[path][c] = level_list
-        # level_dict[path] = level_list
-        # time_dict[path] = solve_time
     return res_dict
 
-def parse_exp_output(output_dir, config_list):
+def parse_exp_output(output_dir):
     dir_tree = os.walk(output_dir)
     path_list = [f"{t[0]}/{f}" for t in dir_tree for f in t[2] if f[-4:]==".txt"]
+    config_list = sorted(list(set([p.split('/')[-3] for p in path_list])))
     cnfs = [p.split('/')[-2] for p in path_list]
     cnfs = list(set(cnfs))
     path_dict = {c:[path for path in path_list if c in path] for c in config_list}
 
     res_dict = parse_all(output_dir, path_dict, cnfs)
-    # res_dict = dict()
-    # for k, paths in path_dict.items():
-        # level_dict, time_dict = parse_many(k, paths)
-        # res_dict[k] = (level_dict, time_dict)
-    return res_dict
+    return res_dict, config_list
 
 def dict_to_df(res_dict, explode_level=True):
     df = pd.DataFrame.from_records(
             [
-                (cnf, c, r_dict['level'], np.mean(r_dict['level']),
-                    r_dict['time'], r_dict['sat_state'])
+                (
+                    cnf,
+                    c,
+                    r_dict['level'],
+                    np.mean(r_dict['level']),
+                    r_dict['time'],
+                    r_dict['sat_state'],
+                    r_dict['glue']
+                )
                 for cnf, c_dict in res_dict.items()
                 for c, r_dict in c_dict.items()
             ],
-            columns=['cnf', 'config', 'level', 'av_level', 'time', 'sat_state']
+            columns=[
+                'cnf',
+                'config',
+                'level',
+                'av_level',
+                'time',
+                'sat_state',
+                'glue'
+                ]
     )
 
     if explode_level:
@@ -116,13 +120,7 @@ def dict_to_dfs(res_dict):
 
 if __name__ == "__main__":
     exp_outputs_dir = "exp_output"
-    config_list = [
-            "cadical-1.3.1-c9b8d0b67a123___sat_500",
-            "cadical-1.3.1-c9b8d0b67a123___sat_950",
-            "cadical-1.3.1-c9b8d0b67a123___unsat_500",
-            "cadical-1.3.1-c9b8d0b67a123___unsat_950"
-            ]
-    res_dict = parse_exp_output(exp_outputs_dir, config_list)
-    df = dict_to_df(res_dict)
+    res_dict = parse_exp_output(exp_outputs_dir)
+    df, conf_list = dict_to_df(res_dict)
 
 
