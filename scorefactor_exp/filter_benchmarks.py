@@ -61,11 +61,12 @@ if __name__ == "__main__":
     benchmarks_filename = "results.csv"
     sat_df, unsat_df = load_dfs(benchmarks_filename)
     sat_df, unsat_df = filter_complete(sat_df, unsat_df)
-    filtered_cnf_list = filter_time(sat_df, unsat_df)
+    filtered_cnf_list = filter_time(sat_df, unsat_df, factor=1)
 
-    save_filename = "filtered_cnf_list"
+    # save_filename = "filtered_cnf_list"
+    save_filename = "unfiltered_cnf_list"
     with open(save_filename, "w") as fp:
         fp.writelines([
-            ".".join(cnf.lstrip("sat/").split(".")[:-1]) + "\n" for cnf in filtered_cnf_list
+            ".".join(cnf[4:].split(".")[:-1]) + "\n" for cnf in filtered_cnf_list
             ])
 

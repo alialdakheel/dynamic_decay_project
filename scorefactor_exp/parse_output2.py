@@ -15,21 +15,23 @@ def parse_one(path):
         glue_list = list()
         for line in fp:
             if line[-2] == '%':
-                level = int(line.split()[5])
+                level = int(line.split()[-10])
                 level_list.append(level)
-                glue = int(line.split()[11])
+                glue = int(line.split()[-4])
                 glue_list.append(glue)
             if "total real time since initialization:" in line:
-                solve_time = float(line.split()[7])
+                solve_time = float(line.split()[-2])
             if "SATISFIABLE" in line:
-                sat_state = line.split()[2]
+                sat_state = line.split()[-1]
+            if "low_glue_confs.:" in line:
+                lgc = float(line.split()[-4])
     average_level = sum(level_list)/len(level_list)
     if DEBUG:
         print(path)
         print("average level:", average_level)
         print("solve time:", solve_time)
 
-    return level_list, solve_time, sat_state, glue_list
+    return level_list, solve_time, sat_state, glue_list, lgc
 
 def parse_all(output_dir, path_dict, cnfs):
     res_dict = dict()
@@ -40,7 +42,7 @@ def parse_all(output_dir, path_dict, cnfs):
             assert(len(f) == 1)
             path = f[0]
             try:
-                level_list, solve_time, satstate, glue_list = parse_one(path)
+                level_list, solve_time, satstate, glue_list, lgc = parse_one(path)
             except Exception as e:
                 if DEBUG:
                     print("Parse one failed", path)
@@ -50,7 +52,8 @@ def parse_all(output_dir, path_dict, cnfs):
                     'level': level_list,
                     'time': solve_time,
                     'sat_state': satstate,
-                    'glue': max(glue_list),
+                    'glue': sum(glue_list)/len(glue_list),
+                    'lgc': lgc
                     }
 
     return res_dict
@@ -76,7 +79,8 @@ def dict_to_df(res_dict, explode_level=True):
                     np.mean(r_dict['level']),
                     r_dict['time'],
                     r_dict['sat_state'],
-                    r_dict['glue']
+                    r_dict['glue'],
+                    r_dict['lgc']
                 )
                 for cnf, c_dict in res_dict.items()
                 for c, r_dict in c_dict.items()
@@ -88,7 +92,8 @@ def dict_to_df(res_dict, explode_level=True):
                 'av_level',
                 'time',
                 'sat_state',
-                'glue'
+                'glue',
+                'lgc'
                 ]
     )
 
@@ -120,7 +125,7 @@ def dict_to_dfs(res_dict):
 
 if __name__ == "__main__":
     exp_outputs_dir = "exp_output"
-    res_dict = parse_exp_output(exp_outputs_dir)
-    df, conf_list = dict_to_df(res_dict)
+    res_dict, conf_list = parse_exp_output(exp_outputs_dir)
+    df = dict_to_df(res_dict)
 
 

@@ -103,8 +103,8 @@ def level_vs_time_sp2(df, conf):
     fig.subplots_adjust(left=0.08, right=0.94, bottom=0.1, top=0.94, hspace=0.2)
     plt.show()
 
-def level_vs_time_sp3(df, conf, savefig=False, logscale=True, use_glue=False):
-    cols = 1
+def level_vs_time_sp3(df, conf, cols=1, savefig=False, logscale=True, use_glue=False):
+    cols = cols
     fig, ax_arr = plt.subplots(len(conf)//cols, cols)
     ax_arr.flatten()
     for i, c in enumerate(conf):
@@ -200,22 +200,36 @@ def level_vs_time_boxplots(df, conf):
     fig.subplots_adjust(left=0.08, right=0.94, bottom=0.1, top=0.94, hspace=0.2)
     plt.show()
 
-def level_vs_level(df, conf, logscale=True, savefig=True, use_glue=False):
-    markers = [i for i in range(12)]
+def level_vs_level(df, conf, logscale=True, savefig=True, mode='glue', subplots=False):
+    """
+    TODO: add subplots as option (default to one plot per figure)
+    TODO: change color line to start from red-grey-blue
+    TODO: Add mode that determines what to plot
+    """
+    modes = ['av_level', 'glue', 'lgc']
+    assert(mode in modes)
+    # markers = [i for i in range(12)]
     # cm = sns.color_palette('tab20')
-    cm = sns.color_palette('twilight', len(df.cnf.unique()))
+    # cm = sns.color_palette('twilight', len(df.cnf.unique()))
     # num_plot = np.math.factorial(len(conf)) // (2 * np.math.factorial(len(conf)-2))
     num_plot = 6
     cols = 3
     cnfs = df.cnf.unique()
 
-    fig, ax_arr = plt.subplots(num_plot//cols, cols, sharex=True, sharey=True)
-    ax_arr.flatten()
+    if subplots:
+        fig, ax_arr = plt.subplots(num_plot//cols, cols, sharex=True, sharey=True)
+        ax_arr.flatten()
+    else:
+        xlim = ylim = [np.floor(df[mode].min()), df[mode].max()]
     p = iter(range(num_plot))
+    sns.set_style('darkgrid')
     for i, c in enumerate(conf):
         df_conf = df[df.config == c].sort_values('cnf')
         for i2, c2 in enumerate(conf[i+1:]):
-            ax = ax_arr.flatten()[next(p)]
+            if subplots:
+                ax = ax_arr.flatten()[next(p)]
+            else:
+                fig, ax = plt.subplots()
             # ax = ax_arr[i*len(conf[i:])+i2)
             # print("next plot", i*len(conf[i:])+i2)
 
@@ -237,49 +251,76 @@ def level_vs_level(df, conf, logscale=True, savefig=True, use_glue=False):
                     # df_conf.sat_state.str.split('I').str[0], sep=', ')
 
             g = sns.scatterplot(
-                    x=df_conf.glue if use_glue else df_conf.av_level,
-                    y=df_conf2.glue if use_glue else df_conf2.av_level,
+                    x=df_conf[mode],
+                    y=df_conf2[mode],
                     hue=df_conf[f"diff{i2}"],
                     style=df_conf.sat_state,
                     size=0,
+                    palette='RdYlBu',
                     ax=ax,
             )
-            ax.legend().remove()
-            sns.set(font_scale=0.7)
+            ax.set_xlim(*xlim)
+            ax.set_ylim(*ylim)
+            conf2 = c2.rstrip(')').rstrip('\'').split('___')[-1]
+            conf1 = c.rstrip(')').rstrip('\'').split('___')[-1]
+            ax.set_title(f"{conf2} - {conf1}", fontsize=10)
+            ax.set_xlabel(
+                    conf1 + "_" + mode,
+                    # fontsize=8
+                    )
+            ax.set_ylabel(
+                    conf2 + "_" + mode,
+                    # fontsize=8
+                    )
             if logscale:
                 g.set(xscale='log')
                 g.set(yscale='log')
-            conf2 = c2.rstrip(')').rstrip('\'').split('___')[-1]
-            conf1 = c.rstrip(')').rstrip('\'').split('___')[-1]
-            ax.set_title(f"{conf2} - {conf1}", fontsize=9)
-            ax.set_xlabel(
-                    conf1 + "_glue" if use_glue else conf1,
-                    fontsize=8
-                    )
-            ax.set_ylabel(
-                    conf2 + "_glue" if use_glue else conf2,
-                    fontsize=8
-                    )
             ax.set_adjustable('box')
             ax.set_aspect(1)
-            # ax.set_xticklabels(ax.get_xticklabels(),
-                    # fontsize=8)
+            if subplots:
+                ax.legend().remove()
+                sns.set(font_scale=0.7)
+            else:
+                handles, labels = ax.get_legend_handles_labels()
+                labels[0] = 'Color key'
+                del labels[-4]
+                del handles[-4]
+                ax.legend().remove()
+                fig.legend(handles, labels,
+                        loc='upper right',
+                        framealpha=0.65,
+                        # loc='upper right',
+                        # fontsize=6,
+                        bbox_to_anchor=(0.995, 0.995),
+                        # ncol=2
+                        )
+                fig.subplots_adjust(left=0.09, right=0.87, bottom=0.1, top=0.92,
+                        hspace=0.16, wspace=0.33)
+                if savefig:
+                    fig.savefig(f'{mode}_{conf2}-{conf1}.png')
+                # else:
+                    # plt.show()
 
-    handles, labels = ax_arr[1,0].get_legend_handles_labels()
-    labels[0] = 'Color key'
-    del labels[-4]
-    del handles[-4]
-    fig.legend(handles, labels, loc='upper right', fontsize=6
-            # ,bbox_to_anchor=(0.17, 0.78), ncol=2
-            )
-    fig.subplots_adjust(left=0.05, right=0.88, bottom=0.05, top=0.96,
-            hspace=0.16, wspace=0.33)
-    # fig.tight_layout()
+    if subplots:
+        handles, labels = ax_arr[1,0].get_legend_handles_labels()
+        labels[0] = 'Color key'
+        del labels[-4]
+        del handles[-4]
+        fig.legend(handles, labels,
+                loc='best',
+                framealpha=0.65,
+                # loc='upper right',
+                # fontsize=6,
+                # ,bbox_to_anchor=(0.17, 0.78), ncol=2
+                )
+        fig.subplots_adjust(left=0.05, right=0.88, bottom=0.05, top=0.96,
+                hspace=0.16, wspace=0.33)
+        # fig.tight_layout()
 
-    if savefig:
-        fig.savefig('level_vs_level.png')
-
-    plt.show()
+        if savefig:
+            fig.savefig('level_vs_level.png')
+        else:
+            plt.show()
 
 if __name__ == "__main__":
     # from parse_output import parse_exp_output, dict_to_dfs
